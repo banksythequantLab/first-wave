@@ -1,0 +1,33 @@
+import type { ScoreParts } from "./types";
+
+/** Weights for the gap score (weighted geometric mean). Sum to 1. */
+export const WEIGHTS: ScoreParts = { abroad: 0.35, momentum: 0.2, scarcity: 0.25, fit: 0.2 };
+
+const clamp = (x: number) => Math.min(1, Math.max(0.01, Number.isFinite(x) ? x : 0.01));
+
+/**
+ * Gap score 0-100: abroad affinity x momentum x local scarcity x local fit.
+ * Weighted geometric mean, so any near-zero factor pulls the score down hard
+ * (a trend that's already saturated locally can't score high).
+ */
+export function gapScore(p: ScoreParts, w: ScoreParts = WEIGHTS): number {
+  const s =
+    Math.pow(clamp(p.abroad), w.abroad) *
+    Math.pow(clamp(p.momentum), w.momentum) *
+    Math.pow(clamp(p.scarcity), w.scarcity) *
+    Math.pow(clamp(p.fit), w.fit);
+  return Math.round(s * 100);
+}
+
+/** Local scarcity from how many local places Qloo returns for the tag (0 = whitespace). */
+export function scarcityFromCount(count: number, cap = 50): number {
+  return 1 - Math.min(count, cap) / cap;
+}
+
+/** Overlap between candidate's co-tags and the local taste profile (0..1). */
+export function tasteOverlap(candidate: string[], local: string[]): number {
+  if (!candidate.length || !local.length) return 0.3;
+  const L = new Set(local);
+  const hits = candidate.filter((t) => L.has(t)).length;
+  return 0.3 + 0.7 * (hits / candidate.length);
+}
