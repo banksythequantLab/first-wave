@@ -3,6 +3,7 @@ import type { Business, ScoutEvent, TrendCard, Evidence, QEntity } from "./types
 import * as qloo from "./qloo";
 import { gapScore, scarcityFromCount, tasteOverlap } from "./score";
 import { writeKit } from "./llm";
+import { TREND_IMAGES } from "./fixtures";
 
 export const SOURCE_CITIES: { city: string; country: string }[] = [
   { city: "Seoul", country: "KR" }, { city: "Mexico City", country: "MX" },
@@ -66,6 +67,7 @@ export async function runScout(b: Business, emit: (e: ScoutEvent) => void): Prom
       originCity: c.city, originCountry: c.country, fitScore: gapScore(parts), parts, momentumAvailable: m !== null,
       evidence: ev.map<Evidence>((e) => ({ name: e.name, city: c.city, affinity: aff(e), entity_id: e.entity_id })),
       localCount: count,
+      ...(TREND_IMAGES[c.tagId] ? { image: TREND_IMAGES[c.tagId].src, imageAlt: TREND_IMAGES[c.tagId].alt } : {}),
       whyItFits: [
         `${ev.length} high-affinity ${c.city} spots feature it (top affinity ${aff(ev[0]).toFixed(2)})`,
         count === 0 ? `Zero ${b.location} places tagged with it — open whitespace` : `Only ${count} ${b.location} places carry it`,

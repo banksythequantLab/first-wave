@@ -1,5 +1,7 @@
 # 🌊 First Wave
 
+![First Wave hero](public/hero.jpg)
+
 **Catch the next trend before it lands.** First Wave is an AI agent that scouts what's taking off in Seoul, Mexico City, Lagos and Tokyo, finds the trends that *haven't* reached a US neighborhood yet, scores how well each fits that block's taste, and hands a small business a ready-to-launch kit that credits the origin culture.
 
 ![Trend cards](docs/03-trend-cards.png)
@@ -55,3 +57,6 @@ Qloo responses are cached **privately in server memory only**. Per Qloo's hackat
 First Wave is about cultural trend *scouting with credit*. Every kit names the origin culture, uses the original name, and recommends partnering with (and paying) local diaspora makers.
 
 MIT © 2026 Derek Soltis
+
+## Images
+Trend-card photos (`public/trends/`) and the hero banner (`public/hero.jpg`) were generated with Qwen Image 2.1 on a self-hosted ComfyUI server. They are illustrations, not photos of real businesses, and show no real people.

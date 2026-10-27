@@ -54,7 +54,7 @@ export default function Home() {
       <div>
         {cards.length ? <div className="cards">{cards.map((k) => <div key={k.id} className={`card ${flipped[k.id] ? "flipped" : ""}`} onClick={() => { setFlipped((f) => ({ ...f, [k.id]: !f[k.id] })); setSel(k); }}>
           <div className="inner">
-            <div className="face"><div className="origin">📍 {k.originCity}, {k.originCountry}</div><div className="trend">{k.trend}</div>
+            <div className="face">{k.image ? <img className="trend-img" src={k.image} alt={k.imageAlt ?? `${k.trend} from ${k.originCity}`} loading="lazy" /> : null}<div className="origin">📍 {k.originCity}, {k.originCountry}</div><div className="trend">{k.trend}</div>
               <div className="bars">{Object.entries(k.parts).map(([n, v]) => <div key={n}>{LABEL[n]}<i><u style={{ width: `${v * 100}%` }} /></i>{n === "momentum" && !k.momentumAvailable ? "n/a" : (v * 100).toFixed(0)}</div>)}</div>
               <div className="score"><b>{k.fitScore}</b><span>fit score<br />tap to flip</span></div></div>
             <div className="face back"><h4>Why it fits</h4><ul>{k.whyItFits.map((w) => <li key={w}>{w}</li>)}</ul>

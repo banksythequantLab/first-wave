@@ -17,6 +17,8 @@ export type TrendCard = {
   fitScore: number; parts: ScoreParts; momentumAvailable: boolean;
   evidence: Evidence[]; localCount: number; whyItFits: string[];
   heatmap: HeatPoint[]; kit?: LaunchKit;
+  /** Optional illustration under /public, e.g. /trends/salt-bread.webp */
+  image?: string; imageAlt?: string;
 };
 export type ScoutEvent =
   | { type: "log"; msg: string; t: number }

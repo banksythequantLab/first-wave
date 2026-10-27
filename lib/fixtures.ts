@@ -76,3 +76,10 @@ export function mockHeatmap(seed: string, lat = 40.744, lng = -74.032): HeatPoin
   }
   return pts;
 }
+
+/** Illustrations for mock-mode trends (generated with Qwen Image on ComfyUI; no real people). */
+export const TREND_IMAGES: Record<string, { src: string; alt: string }> = {
+  [T.saltbread.id]: { src: "/trends/salt-bread.webp", alt: "Korean salt bread rolls topped with sea salt, one torn open to show butter inside" },
+  [T.pandulce.id]: { src: "/trends/pan-dulce.webp", alt: "Pink, vanilla and chocolate Mexican conchas on a bakery tray with coffee" },
+  [T.puffpuff.id]: { src: "/trends/puff-puff.webp", alt: "Sugar-dusted Nigerian puff-puff in an enamel bowl on Ankara print cloth" },
+};
