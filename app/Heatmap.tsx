@@ -32,7 +32,7 @@ export default function Heatmap({ points, legend }: { points: HeatPoint[]; legen
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, ["+", 3, ["*", 5, ["get", "a"]]], 16, ["+", 8, ["*", 14, ["get", "a"]]]],
           "circle-color": ["interpolate", ["linear"], ["get", "a"], 0, "hsl(200,90%,35%)", 0.5, "hsl(110,90%,45%)", 1, "hsl(20,90%,55%)"],
           "circle-opacity": ["+", 0.25, ["*", 0.4, ["get", "a"]]],
-        } });
+        } }, m.getStyle().layers.find((l) => l.type === "symbol")?.id); // below labels so street names stay readable
         const pop = new ml.Popup({ closeButton: false, closeOnClick: false });
         map.on("mousemove", "heat", (e) => { const f = e.features?.[0]; if (f && map) pop.setLngLat(e.lngLat).setText(`Qloo affinity ${Number(f.properties.a).toFixed(2)}`).addTo(map); });
         map.on("mouseleave", "heat", () => pop.remove());
