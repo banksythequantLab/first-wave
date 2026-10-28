@@ -63,7 +63,8 @@ export default function Home() {
           </div></div>)}</div>
           : <div className="empty">{busy ? "Scouting the world…" : "Enter a business and hit Scout. You'll get 3 trends from abroad with fit scores, evidence, and a launch kit."}</div>}
         {sel && <div className="panel"><b>Where {sel.trend} fans cluster in {b.location}</b> <span className="hint">(Qloo heatmap{mock ? ", MOCK" : ""})</span>
-          <div style={{ maxWidth: 360, marginTop: 10 }}><Heatmap points={sel.heatmap} /></div></div>}
+          {sel.heatmapLevel === "category" && <p className="hint">Qloo had no dish-level heatmap for {sel.trend} here, so this shows category-level Bakery-fan density.</p>}
+          <div style={{ maxWidth: 520, marginTop: 10 }}><Heatmap points={sel.heatmap} legend="Bakery-fan density (Qloo affinity)" /></div></div>}
       </div>
     </div>
     <footer>Trends are credited to their origin cultures. Data: Qloo Insights API{mock ? " (currently MOCK fixtures, not real Qloo data)" : ""}. MIT licensed.</footer>

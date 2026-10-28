@@ -1,3 +1,4 @@
+import { dedupeByName } from "./score";
 import "server-only";
 import type { Business, ScoutEvent, TrendCard, Evidence, QEntity } from "./types";
 import * as qloo from "./qloo";
@@ -69,7 +70,7 @@ export async function runScout(b: Business, emit: (e: ScoutEvent) => void): Prom
       byTag.set(t.id, c);
     }
     // live: need 2+ distinct places, so one venue can't make a "trend"
-    const top = [...byTag.values()].filter((c) => mock || c.ev.length >= 2).sort((a, z) => z.ev.reduce((s, e) => s + aff(e), 0) - a.ev.reduce((s, e) => s + aff(e), 0)).slice(0, 3);
+    const top = [...byTag.values()].filter((c) => mock || dedupeByName(c.ev).length >= 2).sort((a, z) => z.ev.reduce((s, e) => s + aff(e), 0) - a.ev.reduce((s, e) => s + aff(e), 0)).slice(0, 3);
     log(`  → ${ents.length} places; rising signals: ${top.map((c) => c.name).join(", ") || "none"}`);
     cands.push(...top);
   }
@@ -92,7 +93,7 @@ export async function runScout(b: Business, emit: (e: ScoutEvent) => void): Prom
     return Object.fromEntries(US_CITIES.map((c) => [c, Math.max(own[c], base[c])]));
   };
   const scoreOne = async (c: Cand) => {
-    const ev = c.ev.sort((a, z) => aff(z) - aff(a)).slice(0, 3);
+    const ev = dedupeByName(c.ev.sort((a, z) => aff(z) - aff(a))).slice(0, 3);
     const abroad = ev.slice(0, 2).reduce((s, e) => s + aff(e), 0) / Math.min(2, ev.length);
     const m = mock ? (MOCK_MOMENTUM[c.tagId] ?? 0.5) : qloo.momentumFromEntities(ev);
     const [count, us] = await Promise.all([qloo.localCount(b.location, c.tagId), mock ? Promise.resolve(null) : usCountsWithBase(c.tagId)]);
@@ -134,6 +135,9 @@ export async function runScout(b: Business, emit: (e: ScoutEvent) => void): Prom
     if (!k.heatmap.length && !mock) {
       log(`  no ${k.trend} heatmap for ${b.location}; showing where ${typeTag.name} fans cluster instead`);
       try { k.heatmap = await qloo.heatmap(b.location, typeTag.id); } catch { k.heatmap = []; }
+      k.heatmapLevel = "category";
+    } else {
+      k.heatmapLevel = "dish";
     }
     log(`Writing launch kit for ${k.trend}…`);
     k.kit = await writeKit(b, k);

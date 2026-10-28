@@ -19,6 +19,8 @@ export type TrendCard = {
   /** Places carrying the tag per US benchmark city (live only). */
   usCounts?: Record<string, number>; whyItFits: string[];
   heatmap: HeatPoint[]; kit?: LaunchKit;
+  /** "category" when the dish heatmap was empty and the business-type heatmap is shown instead. */
+  heatmapLevel?: "dish" | "category";
   /** Optional illustration under /public, e.g. /trends/salt-bread.webp */
   image?: string; imageAlt?: string;
 };

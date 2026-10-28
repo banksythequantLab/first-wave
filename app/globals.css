@@ -26,3 +26,7 @@ footer{color:var(--muted);font-size:12px;margin-top:30px}
 @media(max-width:900px){.form{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.log{height:200px}.cards{grid-template-columns:1fr}.kit{grid-template-columns:1fr}}
 
 .trend-img{display:block;width:100%;height:120px;object-fit:cover;border-radius:10px;margin-bottom:8px}
+.map{width:100%;height:260px;border-radius:10px;overflow:hidden;z-index:0}
+@media (max-width:640px){.map{height:220px}}
+.legend{font-size:12px;opacity:.85;margin-top:6px;display:flex;align-items:center;gap:6px}
+.legend .ramp{display:inline-block;width:70px;height:8px;border-radius:4px;background:linear-gradient(90deg,hsl(200 90% 35%),hsl(110 90% 45%),hsl(20 90% 55%))}

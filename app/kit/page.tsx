@@ -24,7 +24,7 @@ export default function Kit() {
       <div className="panel"><h3>Instagram caption</h3><p>{x.caption}</p></div>
       <div className="panel"><h3>Community outreach</h3><p>{x.outreach}</p></div>
       <div className="panel"><h3>Credit &amp; respect</h3><p>{x.creditNote}</p></div>
-      <div className="panel"><h3>Where to promote</h3><Heatmap points={k.heatmap} /></div>
+      <div className="panel"><h3>Where to promote</h3><Heatmap points={k.heatmap} legend="Bakery-fan density (Qloo affinity)" /></div>
     </div>
     <div className="panel"><h3 style={{ color: "var(--warm)" }}>Evidence</h3><ul>{k.whyItFits.map((w) => <li key={w}>{w}</li>)}</ul></div>
     <button style={{ marginTop: 14 }} onClick={() => window.print()}>Print / save PDF</button>

@@ -50,3 +50,10 @@ export function usRarityFromCounts(counts: number[], perCityCap = 50): number {
   const share = counts.reduce((s, c) => s + Math.min(c, perCityCap), 0) / (perCityCap * counts.length);
   return 1 - Math.sqrt(share);
 }
+
+/** Merge venues whose names differ only by case/whitespace (seen live: "Sucre i Cacao" / "Sucre I Cacao"). Keeps the first (highest affinity). */
+export function dedupeByName<T extends { name: string }>(xs: T[]): T[] {
+  const seen = new Set<string>();
+  return xs.filter((x) => { const k = x.name.toLowerCase().replace(/\s+/g, " ").trim(); if (seen.has(k)) return false; seen.add(k); return true; });
+}
+
