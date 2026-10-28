@@ -7,7 +7,7 @@ export type QEntity = {
 };
 export type HeatPoint = { lat: number; lng: number; affinity: number };
 export type Evidence = { name: string; city: string; affinity: number; entity_id: string };
-export type ScoreParts = { abroad: number; momentum: number; scarcity: number; fit: number };
+export type ScoreParts = { abroad: number; momentum: number; usRarity: number; scarcity: number; fit: number };
 export type LaunchKit = {
   productName: string; description: string; price: string; event: string;
   caption: string; outreach: string; creditNote: string; source: "llm" | "template";
@@ -15,7 +15,9 @@ export type LaunchKit = {
 export type TrendCard = {
   id: string; trend: string; tagId: string; originCity: string; originCountry: string;
   fitScore: number; parts: ScoreParts; momentumAvailable: boolean;
-  evidence: Evidence[]; localCount: number; whyItFits: string[];
+  evidence: Evidence[]; localCount: number;
+  /** Places carrying the tag per US benchmark city (live only). */
+  usCounts?: Record<string, number>; whyItFits: string[];
   heatmap: HeatPoint[]; kit?: LaunchKit;
   /** Optional illustration under /public, e.g. /trends/salt-bread.webp */
   image?: string; imageAlt?: string;

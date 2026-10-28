@@ -1,7 +1,7 @@
 import "server-only";
 import type { Business, ScoutEvent, TrendCard, Evidence, QEntity } from "./types";
 import * as qloo from "./qloo";
-import { gapScore, scarcityFromCount, tasteOverlap } from "./score";
+import { gapScore, scarcityFromCount, tasteOverlap, usRarityFromCounts, US_CITIES } from "./score";
 import { writeKit } from "./llm";
 import { TREND_IMAGES, MOCK_MOMENTUM } from "./fixtures";
 import { imageFor } from "./images";
@@ -74,31 +74,54 @@ export async function runScout(b: Business, emit: (e: ScoutEvent) => void): Prom
     cands.push(...top);
   }
 
-  log(`Scoring ${cands.length} candidates: momentum (audience growth), local scarcity, local fit…`);
+  log(`Scoring ${cands.length} candidates: momentum (audience growth), US rarity, local scarcity, local fit…`);
   const cards: TrendCard[] = [];
-  for (const c of cands) {
+  const usCache = new Map<string, Promise<Record<string, number>>>(); // per tag, per run
+  const usCounts = (tagId: string) => {
+    if (!usCache.has(tagId)) usCache.set(tagId, Promise.all(US_CITIES.map((city) => qloo.localCount(city, tagId).catch(() => -1)))
+      .then((n) => Object.fromEntries(US_CITIES.map((city, i) => [city, n[i]]))));
+    return usCache.get(tagId)!;
+  };
+  /** "Traditional baguette" is still a baguette: also count the base dish tag (max of the two per city). */
+  const MODIFIER = /^(urn:tag:[a-z_]+:[a-z_]+:)(traditional|classic|fresh|homemade|artisan|french|mini)_(.+)$/;
+  const usCountsWithBase = async (tagId: string) => {
+    const own = await usCounts(tagId);
+    const m = tagId.match(MODIFIER);
+    if (!m) return own;
+    const base = await usCounts(m[1] + m[3]);
+    return Object.fromEntries(US_CITIES.map((c) => [c, Math.max(own[c], base[c])]));
+  };
+  const scoreOne = async (c: Cand) => {
     const ev = c.ev.sort((a, z) => aff(z) - aff(a)).slice(0, 3);
     const abroad = ev.slice(0, 2).reduce((s, e) => s + aff(e), 0) / Math.min(2, ev.length);
     const m = mock ? (MOCK_MOMENTUM[c.tagId] ?? 0.5) : qloo.momentumFromEntities(ev);
-    const count = await qloo.localCount(b.location, c.tagId);
+    const [count, us] = await Promise.all([qloo.localCount(b.location, c.tagId), mock ? Promise.resolve(null) : usCountsWithBase(c.tagId)]);
     const fit = tasteOverlap([...new Set(c.coTags)], profile);
-    const parts = { abroad, momentum: m ?? 0.5, scarcity: scarcityFromCount(count), fit };
+    const scarcity = scarcityFromCount(count);
+    const usVals = us ? Object.values(us).filter((n) => n >= 0) : [];
+    const usRarity = us ? usRarityFromCounts(usVals) : scarcity; // mock: no US data, mirror local scarcity
+    const usTotal = usVals.reduce((s, n) => s + n, 0);
+    const parts = { abroad, momentum: m ?? 0.5, usRarity, scarcity, fit };
+    if (us) log(`  ${c.name} (${c.city}): US places ${US_CITIES.map((x) => `${x.replace(" City", "")} ${us[x] < 0 ? "err" : us[x]}`).join(", ")} → rarity ${(usRarity * 100).toFixed(0)}`);
     const shared = [...new Set(c.coTags)].filter((t) => profile.includes(t)).map((t) => tagName.get(t) ?? t);
     cards.push({
       id: `${c.city}-${c.tagId}`.replace(/[^a-z0-9]+/gi, "-"), trend: c.name, tagId: c.tagId,
       originCity: c.city, originCountry: c.country, fitScore: gapScore(parts), parts, momentumAvailable: m !== null,
       evidence: ev.map<Evidence>((e) => ({ name: e.name, city: c.city, affinity: aff(e), entity_id: e.entity_id })),
-      localCount: count,
+      localCount: count, ...(us ? { usCounts: us } : {}),
       ...(imageFor(c.tagId, c.name, TREND_IMAGES) ?? {}),
       whyItFits: [
         `${ev.length} high-affinity ${c.city} spots feature it (top affinity ${aff(ev[0]).toFixed(2)})`,
         count === 0 ? `Zero ${b.location} places tagged with it — open whitespace` : `Only ${count} ${b.location} places carry it`,
+        ...(us ? [usTotal === 0 ? `Not tagged at any place in ${US_CITIES.join(", ")} (Qloo)` : `${usTotal} places across ${US_CITIES.length} big US cities carry it`] : []),
         shared.length ? `Shares local tastes: ${shared.slice(0, 3).join(", ")}` : "New flavor for the neighborhood",
         m === null ? "Momentum: no audience-growth data from Qloo" : `Momentum index ${(m * 100).toFixed(0)}/100 (Qloo audience growth)`,
       ],
       heatmap: [],
     });
-  }
+  };
+  // 4 candidates at a time (each = 1 local + 4 US calls, US cached per tag)
+  for (let i = 0; i < cands.length; i += 4) await Promise.all(cands.slice(i, i + 4).map(scoreOne));
   // one card per origin city for variety, then top 3
   const best = new Map<string, TrendCard>();
   for (const k of cards.sort((a, z) => z.fitScore - a.fitScore)) if (!best.has(k.originCity)) best.set(k.originCity, k);

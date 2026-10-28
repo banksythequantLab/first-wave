@@ -15,12 +15,13 @@ Without Qloo there's no cross-city taste data and no local gap, so the app can't
 |---|---|
 | Resolve business type to a tag | `GET /v2/tags?filter.query=bakery` |
 | Local taste profile | `GET /v2/insights?filter.type=urn:entity:place&filter.location.query=Hoboken&filter.tags=<type tag>` |
-| Scout abroad | `GET /v2/insights?filter.type=urn:entity:place&filter.location.query=Seoul&filter.tags=<type tag>&bias.trends=high` |
-| Momentum | `GET /v2/trending?signal.interests.entities=…&filter.type=…&filter.start_date=…&filter.end_date=…` |
+| Scout abroad | `GET /v2/insights?filter.type=urn:entity:place&filter.location.query=Tokyo&filter.tags=<type tag>&bias.trends=high` |
+| Momentum | `query.measurements.audience_growth` from the `bias.trends=high` insights call (`/v2/trending` rejects places on the hackathon host) |
+| US rarity | `GET /v2/insights?filter.type=urn:entity:place&filter.location.query=<New York City / Los Angeles / Chicago / Houston>&filter.tags=<dish tag>&take=50` — places that actually carry the tag are counted; 0 everywhere = rare |
 | Local scarcity | `GET /v2/insights?…&filter.location.query=Hoboken&filter.tags=<trend tag>` (fewer results = more whitespace) |
 | Where to promote | `GET /v2/insights?filter.type=urn:heatmap&filter.location.query=Hoboken&signal.interests.tags=<trend tag>` |
 
-**Fit score** = weighted geometric mean of *abroad affinity × momentum × local scarcity × local fit* (`lib/score.ts`). A trend that's already saturated locally can't score high.
+**Fit score** = weighted geometric mean (`lib/score.ts`): abroad affinity 0.25 × momentum 0.15 × **US rarity 0.30** × local scarcity 0.15 × local fit 0.15. US rarity = 1 − √(share of the 4×50 US-city slots that carry the dish), so dishes already common in the US (e.g. croissant) can't score high. Source cities live: Tokyo, Mexico City, Paris, London.
 
 The LLM only writes the launch-kit copy (product name, price, event, caption, diaspora outreach, credit note) from the Qloo evidence. With no LLM key, a deterministic template is used instead.
 

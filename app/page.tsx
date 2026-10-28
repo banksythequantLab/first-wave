@@ -4,7 +4,7 @@ import type { ScoutEvent, TrendCard, Business } from "@/lib/types";
 import Heatmap from "./Heatmap";
 
 const TYPES = ["bakery", "cafe", "bar", "boutique"];
-const LABEL: Record<string, string> = { abroad: "Abroad affinity", momentum: "Momentum", scarcity: "Local scarcity", fit: "Local fit" };
+const LABEL: Record<string, string> = { abroad: "Abroad affinity", momentum: "Momentum", usRarity: "US rarity", scarcity: "Local scarcity", fit: "Local fit" };
 
 export default function Home() {
   const [b, setB] = useState<Business>({ name: "Washington St Bakery", type: "bakery", location: "Hoboken" });

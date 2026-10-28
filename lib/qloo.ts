@@ -14,12 +14,28 @@ export const isMock = () => process.env.QLOO_MOCK === "1" || !KEY;
 
 const cache = new Map<string, unknown>(); // private, in-memory only (allowed by Qloo guide)
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/** Small concurrency limiter so parallel scoring doesn't trip the rate limit. */
+const MAX_CONCURRENT = Number(process.env.QLOO_CONCURRENCY || 3);
+let active = 0; const waiting: (() => void)[] = [];
+async function limited<T>(fn: () => Promise<T>): Promise<T> {
+  if (active >= MAX_CONCURRENT) await new Promise<void>((r) => waiting.push(r));
+  active++;
+  try { return await fn(); } finally { active--; waiting.shift()?.(); }
+}
+
 async function get<T>(path: string, params: Record<string, string | number | boolean | undefined>): Promise<T> {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") qs.set(k, String(v));
   const url = `${BASE}${path}?${qs}`;
   if (cache.has(url)) return cache.get(url) as T;
-  const r = await fetch(url, { headers: { "X-Api-Key": KEY, accept: "application/json" }, cache: "no-store" });
+  const r = await limited(async () => {
+    for (let attempt = 0; ; attempt++) {
+      const res = await fetch(url, { headers: { "X-Api-Key": KEY, accept: "application/json" }, cache: "no-store" });
+      if (res.status !== 429 || attempt >= 4) return res;
+      await sleep(800 * 2 ** attempt); // hackathon host returns 429 "Rate limit exceeded" on bursts
+    }
+  });
   if (!r.ok) throw new Error(`Qloo ${path} ${r.status}: ${(await r.text()).slice(0, 200)}`);
   const j = (await r.json()) as T;
   cache.set(url, j);
