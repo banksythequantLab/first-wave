@@ -1,36 +1,40 @@
 "use client";
 import { useEffect, useRef } from "react";
 import type { HeatPoint } from "@/lib/types";
-import "leaflet/dist/leaflet.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 
 /**
- * Qloo heatmap points over a real street basemap (CARTO light, free with attribution,
- * no API key). Leaflet is imported inside useEffect so it never runs during SSR.
+ * Qloo heatmap points over a real street basemap: OpenFreeMap "positron" vector style
+ * (free, no key, commercial use OK — https://openfreemap.org). MapLibre adds the required
+ * attribution (OpenFreeMap © OpenMapTiles Data from OpenStreetMap) automatically.
+ * maplibre-gl is imported inside useEffect so it never runs during SSR.
  */
+const STYLE = "https://tiles.openfreemap.org/styles/positron";
+
 export default function Heatmap({ points, legend }: { points: HeatPoint[]; legend: string }) {
   const el = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!el.current || !points.length) return;
-    let map: import("leaflet").Map | undefined;
+    let map: import("maplibre-gl").Map | undefined;
     let dead = false;
-    import("leaflet").then((L) => {
+    import("maplibre-gl").then((ml) => {
       if (dead || !el.current) return;
-      map = L.map(el.current, { scrollWheelZoom: false, attributionControl: true });
-      // CARTO basemaps need a (free, public, referrer-restrictable) key since Sept 2026:
-      // https://carto.com/basemaps/apikey. Without one, tiles render an "API KEY REQUIRED" watermark.
-      const key = process.env.NEXT_PUBLIC_CARTO_BASEMAPS_KEY;
-      const url = key
-        ? `https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(key)}`
-        : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
-      L.tileLayer(url, {
-        subdomains: "abcd", maxZoom: 20,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      }).addTo(map);
-      for (const p of points) {
-        L.circleMarker([p.lat, p.lng], { radius: 4 + p.affinity * 6, stroke: false, fillColor: color(p.affinity), fillOpacity: 0.25 + p.affinity * 0.45 })
-          .bindTooltip(`Qloo affinity ${p.affinity.toFixed(2)}`).addTo(map);
-      }
-      map.fitBounds(L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number])), { padding: [12, 12] });
+      const lngs = points.map((p) => p.lng), lats = points.map((p) => p.lat);
+      const bounds: [[number, number], [number, number]] = [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]];
+      const m = new ml.Map({ container: el.current, style: STYLE, bounds, fitBoundsOptions: { padding: 16 }, scrollZoom: false, cooperativeGestures: true, attributionControl: { compact: false } });
+      map = m; m.addControl(new ml.NavigationControl({ showCompass: false }), "top-left");
+      m.on("load", () => {
+        if (!map) return;
+        map.addSource("heat", { type: "geojson", data: { type: "FeatureCollection", features: points.map((p) => ({ type: "Feature", properties: { a: p.affinity }, geometry: { type: "Point", coordinates: [p.lng, p.lat] } })) } });
+        map.addLayer({ id: "heat", type: "circle", source: "heat", paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, ["+", 3, ["*", 5, ["get", "a"]]], 16, ["+", 8, ["*", 14, ["get", "a"]]]],
+          "circle-color": ["interpolate", ["linear"], ["get", "a"], 0, "hsl(200,90%,35%)", 0.5, "hsl(110,90%,45%)", 1, "hsl(20,90%,55%)"],
+          "circle-opacity": ["+", 0.25, ["*", 0.4, ["get", "a"]]],
+        } });
+        const pop = new ml.Popup({ closeButton: false, closeOnClick: false });
+        map.on("mousemove", "heat", (e) => { const f = e.features?.[0]; if (f && map) pop.setLngLat(e.lngLat).setText(`Qloo affinity ${Number(f.properties.a).toFixed(2)}`).addTo(map); });
+        map.on("mouseleave", "heat", () => pop.remove());
+      });
     });
     return () => { dead = true; map?.remove(); };
   }, [points]);
@@ -40,4 +44,3 @@ export default function Heatmap({ points, legend }: { points: HeatPoint[]; legen
     <div className="legend"><span className="ramp" /> {legend}: low → high</div>
   </div>;
 }
-export function color(a: number) { const h = 200 - a * 180; return `hsl(${h} 90% ${35 + a * 20}%)`; }
