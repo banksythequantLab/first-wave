@@ -3,7 +3,7 @@ export type Tag = { id: string; name: string; type?: string };
 export type QEntity = {
   entity_id: string; name: string; subtype?: string;
   properties?: { address?: string; geocode?: { name?: string; country_code?: string } };
-  tags?: Tag[]; popularity?: number; query?: { affinity?: number };
+  tags?: Tag[]; popularity?: number | null; query?: { affinity?: number; measurements?: { audience_growth?: number } };
 };
 export type HeatPoint = { lat: number; lng: number; affinity: number };
 export type Evidence = { name: string; city: string; affinity: number; entity_id: string };

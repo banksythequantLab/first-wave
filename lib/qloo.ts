@@ -6,7 +6,7 @@
  */
 import "server-only";
 import type { QEntity, Tag, HeatPoint } from "./types";
-import { MOCK_ABROAD, MOCK_LOCAL, MOCK_LOCAL_COUNTS, MOCK_MOMENTUM, MOCK_TAGS, mockHeatmap } from "./fixtures";
+import { MOCK_ABROAD, MOCK_LOCAL, MOCK_LOCAL_COUNTS, MOCK_TAGS, mockHeatmap } from "./fixtures";
 
 const BASE = process.env.QLOO_BASE_URL || "https://hackathon.api.qloo.com";
 const KEY = process.env.QLOO_API_KEY || "";
@@ -24,6 +24,11 @@ async function get<T>(path: string, params: Record<string, string | number | boo
   const j = (await r.json()) as T;
   cache.set(url, j);
   return j;
+}
+
+/** Prefer the genre tag (works with urn:heatmap); verified live: category tag returns empty heatmaps. */
+export function pickTypeTag(tags: Tag[]): Tag | undefined {
+  return tags.find((t) => t.id.startsWith("urn:tag:genre:place")) ?? tags[0];
 }
 
 type InsightsResp = { results?: { entities?: QEntity[]; tags?: Tag[]; heatmap?: { location: { latitude: number; longitude: number }; query: { affinity: number } }[] } };
@@ -63,33 +68,28 @@ export async function searchTags(query: string, take = 5): Promise<Tag[]> {
 }
 
 /**
- * GET /v2/trending (week-over-week). Requires signal.interests.entities, filter.type,
- * filter.start_date, filter.end_date (docs: reference/get-trending).
- * Response shape is UNVERIFIED on the hackathon host; we normalize defensively
- * and return null if unavailable so the agent can mark momentum "n/a".
+ * Momentum. Verified Oct 28 2026: /v2/trending on the hackathon host rejects
+ * filter.type=urn:entity:place (allowed: actor, artist, brand, movie, person,
+ * podcast, tv_show). So for places we use what /v2/insights returns with
+ * bias.trends: query.measurements.audience_growth (0 = flat, ~1.73 max seen).
+ * Returns 0..1, or null when no evidence carries the measurement.
  */
-export async function momentum(entityIds: string[], tagId: string, filterType = "urn:entity:place"): Promise<number | null> {
-  if (isMock()) return MOCK_MOMENTUM[tagId] ?? 0.5;
-  const end = new Date(), start = new Date(end.getTime() - 28 * 864e5);
-  const d = (x: Date) => x.toISOString().slice(0, 10);
-  try {
-    const j = await get<Record<string, unknown>>("/v2/trending", {
-      "signal.interests.entities": entityIds.join(","), "filter.type": filterType,
-      "filter.start_date": d(start), "filter.end_date": d(end),
-    });
-    const nums: number[] = [];
-    JSON.stringify(j, (k, v) => { if (/(change|growth|delta|trend)/i.test(k) && typeof v === "number") nums.push(v); return v; });
-    if (!nums.length) return null;
-    const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
-    return 1 / (1 + Math.exp(-avg * 3)); // squash to 0..1
-  } catch { return null; }
+export function momentumFromEntities(ents: QEntity[]): number | null {
+  const g = ents.map((e) => e.query?.measurements?.audience_growth).filter((x): x is number => typeof x === "number");
+  if (!g.length) return null;
+  const avg = g.reduce((s, x) => s + x, 0) / g.length;
+  return Math.min(1, 0.3 + 0.7 * (avg / 1.75));
 }
+
+/** Tag types that name an actual dish/product (verified in live responses). */
+export const isDishTag = (t: Tag) => /^urn:tag:(specialty_dish:place|menu_highlight:qloo):/.test(t.id);
 
 /** Count of local places with a tag (for scarcity): /v2/insights filter.location.query + filter.tags */
 export async function localCount(location: string, tagId: string): Promise<number> {
   if (isMock()) return MOCK_LOCAL_COUNTS[tagId] ?? 10;
   const ents = await insights({ filterType: "urn:entity:place", locationQuery: location, tags: [tagId], take: 50 });
-  return ents.length;
+  // filter.tags is a hard filter, but count only entities that really carry the tag
+  return ents.filter((e) => e.tags?.some((t) => t.id === tagId)).length;
 }
 
 /** Heatmap: /v2/insights filter.type=urn:heatmap (docs: reference/heatmaps-use-case) */

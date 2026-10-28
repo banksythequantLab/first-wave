@@ -4,6 +4,7 @@ import type { Business, TrendCard, LaunchKit } from "./types";
 const COUNTRY: Record<string, { adj: string; diaspora: string }> = {
   KR: { adj: "Korean", diaspora: "Korean-American" }, MX: { adj: "Mexican", diaspora: "Mexican-American" },
   NG: { adj: "Nigerian", diaspora: "Nigerian-American" }, JP: { adj: "Japanese", diaspora: "Japanese-American" },
+  FR: { adj: "French", diaspora: "French-American" }, GB: { adj: "British", diaspora: "British-American" },
 };
 
 export function templateKit(b: Business, k: TrendCard): LaunchKit {

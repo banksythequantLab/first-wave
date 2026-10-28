@@ -1,4 +1,5 @@
 import { runScout } from "@/lib/agent";
+import { loadReplay, saveReplay } from "@/lib/replay";
 import type { Business, ScoutEvent } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -15,7 +16,7 @@ export async function POST(req: Request) {
   const stream = new ReadableStream({
     async start(ctrl) {
       const send = (e: ScoutEvent) => ctrl.enqueue(enc.encode(JSON.stringify(e) + "\n"));
-      const cached = replayCache.get(key);
+      const cached = replayCache.get(key) ?? (body.replay ? await loadReplay(b) : null);
       if (body.replay && cached) {
         send({ type: "log", msg: "▶ Replaying cached demo run", t: 0 });
         for (const e of cached) { await new Promise((r) => setTimeout(r, e.type === "log" ? 220 : 0)); send(e); }
@@ -25,6 +26,7 @@ export async function POST(req: Request) {
       try {
         await runScout(b, (e) => { rec.push(e); send(e); });
         replayCache.set(key, rec);
+        await saveReplay(b, rec);
       } catch (err) {
         send({ type: "log", msg: `❌ ${(err as Error).message}`, t: 0 });
       }
