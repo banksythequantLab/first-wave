@@ -16,7 +16,13 @@ export default function Heatmap({ points, legend }: { points: HeatPoint[]; legen
     import("leaflet").then((L) => {
       if (dead || !el.current) return;
       map = L.map(el.current, { scrollWheelZoom: false, attributionControl: true });
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+      // CARTO basemaps need a (free, public, referrer-restrictable) key since Sept 2026:
+      // https://carto.com/basemaps/apikey. Without one, tiles render an "API KEY REQUIRED" watermark.
+      const key = process.env.NEXT_PUBLIC_CARTO_BASEMAPS_KEY;
+      const url = key
+        ? `https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(key)}`
+        : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+      L.tileLayer(url, {
         subdomains: "abcd", maxZoom: 20,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
       }).addTo(map);

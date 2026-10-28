@@ -61,3 +61,9 @@ MIT © 2026 Derek Soltis
 
 ## Images
 Trend-card photos (`public/trends/`) and the hero banner (`public/hero.jpg`) were generated with Qwen Image 2.1 on a self-hosted ComfyUI server. They are illustrations, not photos of real businesses, and show no real people.
+
+## Street basemap
+The heatmap is drawn with Leaflet over CARTO "light_all" raster tiles (© OpenStreetMap contributors © CARTO).
+CARTO requires a free basemaps key (https://carto.com/basemaps/apikey). Set it as `NEXT_PUBLIC_CARTO_BASEMAPS_KEY`
+in `.env.local` / Vercel env (it is a public, client-side key; restrict it by referrer in the CARTO dashboard) and rebuild.
+Without it, tiles show an "API key required" watermark.
