@@ -9,4 +9,3 @@ next-env.d.ts
 qloo-cache/
 data/replay/
 .env*
-public/maplibre-gl-worker.mjs

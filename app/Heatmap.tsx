@@ -19,7 +19,7 @@ export default function Heatmap({ points, legend }: { points: HeatPoint[]; legen
     let dead = false;
     import("maplibre-gl").then((ml) => {
       if (dead || !el.current) return;
-      // Bundlers can't resolve MapLibre's worker; serve it from /public (copied by `prebuild`).
+      // Bundlers can't resolve MapLibre's worker; serve it from /public (vendored, BSD-3; `npm run prebuild` refreshes it).
       ml.setWorkerUrl("/maplibre-gl-worker.mjs");
       const lngs = points.map((p) => p.lng), lats = points.map((p) => p.lat);
       const bounds: [[number, number], [number, number]] = [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]];
