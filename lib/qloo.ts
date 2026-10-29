@@ -123,3 +123,10 @@ function mockInsights(p: InsightsParams): QEntity[] {
   const want = p.tags?.[0];
   return list.filter((x) => !want || x.tags?.some((t) => t.id === want) || want.includes("cafe") || want.includes("bakery")).slice(0, p.take ?? 20);
 }
+
+/** GET /v2/insights filter.type=urn:demographics (docs: Insights API, demographics entity type). Live: national skew; location is ignored. */
+export async function demographics(tagId: string, label: string) {
+  const { parseDemographics } = await import("./overlays");
+  if (isMock()) return { label: `[MOCK] ${label}`, age: { "24_and_younger": -0.3, "25_to_29": 0.2, "30_to_34": 0.4, "35_to_44": 0.1, "45_to_54": -0.1, "55_and_older": -0.3 }, gender: { male: -0.2, female: 0.2 } };
+  return parseDemographics(await get("/v2/insights", { "filter.type": "urn:demographics", "signal.interests.tags": tagId }), label);
+}

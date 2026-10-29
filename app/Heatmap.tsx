@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
-import type { HeatPoint } from "@/lib/types";
+import type { HeatPoint, Pin } from "@/lib/types";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 /**
@@ -11,7 +11,19 @@ import "maplibre-gl/dist/maplibre-gl.css";
  */
 const STYLE = "https://tiles.openfreemap.org/styles/positron";
 
-export default function Heatmap({ points, legend }: { points: HeatPoint[]; legend: string }) {
+export const PIN_COLOR: Record<Pin["trend"], string> = { rising: "#16a34a", flat: "#64748b", falling: "#dc2626", unknown: "#a3a3a3" };
+
+function pinPopup(p: Pin): HTMLElement {
+  const d = document.createElement("div"); d.className = "pin-pop";
+  const add = (tag: string, text: string) => { const x = document.createElement(tag); x.textContent = text; d.appendChild(x); return x; };
+  add("b", p.name);
+  if (p.address) add("div", p.address);
+  add("div", `Qloo affinity ${p.affinity?.toFixed(2) ?? "n/a"} · audience growth ${p.growth?.toFixed(2) ?? "n/a"} (${p.trend})`);
+  add("div", p.dishes.length ? `Known for: ${p.dishes.join(", ")}` : "No specialty-dish / menu-highlight tags in Qloo");
+  return d;
+}
+
+export default function Heatmap({ points, legend, pins = [] }: { points: HeatPoint[]; legend: string; pins?: Pin[] }) {
   const el = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!el.current || !points.length) return;
@@ -36,13 +48,23 @@ export default function Heatmap({ points, legend }: { points: HeatPoint[]; legen
         const pop = new ml.Popup({ closeButton: false, closeOnClick: false });
         map.on("mousemove", "heat", (e) => { const f = e.features?.[0]; if (f && map) pop.setLngLat(e.lngLat).setText(`Qloo affinity ${Number(f.properties.a).toFixed(2)}`).addTo(map); });
         map.on("mouseleave", "heat", () => pop.remove());
+        if (pins.length) {
+          map.addSource("pins", { type: "geojson", data: { type: "FeatureCollection", features: pins.map((p, i) => ({ type: "Feature", properties: { i, c: PIN_COLOR[p.trend] }, geometry: { type: "Point", coordinates: [p.lng, p.lat] } })) } });
+          map.addLayer({ id: "pins", type: "circle", source: "pins", paint: { "circle-radius": 7, "circle-color": ["get", "c"], "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
+          const click = new ml.Popup({ maxWidth: "260px" });
+          map.on("click", "pins", (e) => { const f = e.features?.[0]; if (f && map) click.setLngLat((f.geometry as GeoJSON.Point).coordinates as [number, number]).setDOMContent(pinPopup(pins[Number(f.properties.i)])).addTo(map); });
+          map.on("mouseenter", "pins", () => { if (map) map.getCanvas().style.cursor = "pointer"; });
+          map.on("mouseleave", "pins", () => { if (map) map.getCanvas().style.cursor = ""; });
+          (el.current as HTMLDivElement & { __map?: unknown }).__map = map; // for screenshots/tests
+        }
       });
     });
     return () => { dead = true; map?.remove(); };
-  }, [points]);
+  }, [points, pins]);
   if (!points.length) return <p className="hint">No heatmap data returned.</p>;
   return <div>
     <div ref={el} className="map" role="img" aria-label={legend} />
     <div className="legend"><span className="ramp" /> {legend}: low → high</div>
+    {pins.length > 0 && <div className="legend">Competitor pins (tap one) by Qloo audience growth: {(["rising", "flat", "falling", "unknown"] as const).map((k) => <span key={k}><span className="dot" style={{ background: PIN_COLOR[k] }} />{k} </span>)}</div>}
   </div>;
 }

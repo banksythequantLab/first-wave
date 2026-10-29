@@ -30,3 +30,10 @@ footer{color:var(--muted);font-size:12px;margin-top:30px}
 @media (max-width:640px){.map{height:220px}}
 .legend{font-size:12px;opacity:.85;margin-top:6px;display:flex;align-items:center;gap:6px}
 .legend .ramp{display:inline-block;width:70px;height:8px;border-radius:4px;background:linear-gradient(90deg,hsl(200 90% 35%),hsl(110 90% 45%),hsl(20 90% 55%))}
+
+.legend .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 3px 0 6px;border:1px solid #fff}
+.pin-pop{font-size:12px;color:#111;line-height:1.4}.pin-pop b{display:block;font-size:13px}
+.demo{margin-top:12px;font-size:12px}.demo-rows{display:grid;gap:3px;margin-top:6px;max-width:520px}
+.demo-rows>div{display:grid;grid-template-columns:110px 1fr 44px;align-items:center;gap:6px}
+.demo-rows i{position:relative;height:8px;background:rgba(127,127,127,.2);border-radius:4px;overflow:hidden;display:block}
+.demo-rows u{position:absolute;top:0;bottom:0;left:0;text-decoration:none;display:block}

@@ -6,6 +6,8 @@ import { gapScore, scarcityFromCount, tasteOverlap, usRarityFromCounts, US_CITIE
 import { writeKit } from "./llm";
 import { TREND_IMAGES, MOCK_MOMENTUM } from "./fixtures";
 import { imageFor } from "./images";
+import { toPins, CUISINE_BY_COUNTRY, pickCuisineTag } from "./overlays";
+import type { Overlays, HeatLayer, Tag } from "./types";
 
 type City = { city: string; country: string };
 /** Mock fixtures are keyed to these cities. */
@@ -129,6 +131,8 @@ export async function runScout(b: Business, emit: (e: ScoutEvent) => void): Prom
   const top3 = [...best.values()].slice(0, 3);
   log(`Top 3: ${top3.map((k) => `${k.trend} (${k.originCity}) ${k.fitScore}`).join(" · ")}`);
 
+  // Overlays run in parallel with heatmaps/kits and stream after the cards.
+  const overlaysP = buildOverlays(b.location, typeTag, local, top3, mock, log);
   for (const k of top3) {
     log(`Mapping where ${k.trend} fans cluster in ${b.location} (urn:heatmap)…`);
     try { k.heatmap = await qloo.heatmap(b.location, k.tagId); } catch { k.heatmap = []; }
@@ -142,6 +146,34 @@ export async function runScout(b: Business, emit: (e: ScoutEvent) => void): Prom
     log(`Writing launch kit for ${k.trend}…`);
     k.kit = await writeKit(b, k);
   }
-  log("Done ✔");
   emit({ type: "result", cards: top3, mock, profile: profile.map((id) => tagName.get(id) ?? id), business: b });
+  const overlays = await overlaysP;
+  log(`Map overlays: ${overlays.pins.length} competitor pins, heatmap layers: ${overlays.layers.map((l) => l.label).join(", ")}${overlays.demographics ? ", demographics" : ""}`);
+  emit({ type: "overlays", overlays });
+  log("Done ✔");
+}
+
+async function buildOverlays(location: string, typeTag: Tag, local: QEntity[], top3: TrendCard[], mock: boolean, log: (m: string) => void): Promise<Overlays> {
+  // Competitor pins: the local same-category places already fetched (no extra call); mock entities get fake coordinates.
+  const src = mock ? local.map((e, i) => ({ ...e, location: { lat: 40.744 + (i - 1) * 0.006, lon: -74.032 + ((i % 2) - 0.5) * 0.008 }, query: { ...e.query, measurements: { audience_growth: [0.6, 0, -0.2][i % 3] } } })) : local;
+  const pins = toPins(src, 25);
+  const label = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const layerFor = async (term: string, tag: Tag | undefined): Promise<HeatLayer | null> => {
+    if (!tag) return null;
+    try { const points = await qloo.heatmap(location, tag.id); return points.length ? { label: label(term), tagId: tag.id, points } : null; }
+    catch (err) { log(`  heatmap ${term}: ${(err as Error).message}`); return null; }
+  };
+  const terms = [...new Set([...top3.map((k) => CUISINE_BY_COUNTRY[k.originCountry]).filter(Boolean), "cafe"])];
+  const cuisine = terms.map(async (term) => {
+    if (mock) return layerFor(term, { id: `urn:tag:mock:${term}`, name: term });
+    const tags = await qloo.searchTags(term, 15).catch(() => []);
+    return layerFor(term === "cafe" ? "café" : `${term} restaurant`, term === "cafe" ? tags.find((t) => t.id === "urn:tag:genre:place:restaurant:cafe") : pickCuisineTag(tags, term));
+  });
+  const [layers, demographics] = await Promise.all([
+    Promise.all([layerFor(typeTag.name.toLowerCase(), typeTag), ...cuisine]),
+    qloo.demographics(typeTag.id, `${typeTag.name} fans`).catch(() => null),
+  ]);
+  const ok = layers.filter((l): l is HeatLayer => !!l);
+  const seen = new Set<string>();
+  return { pins, layers: ok.filter((l) => !seen.has(l.tagId) && seen.add(l.tagId)), demographics };
 }
