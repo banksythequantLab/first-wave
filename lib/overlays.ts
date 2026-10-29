@@ -20,7 +20,7 @@ export function toPins(ents: QEntity[], cap = 25): Pin[] {
   return dedupeByName(keyed).slice(0, cap).map(({ e }) => ({
     id: e.entity_id, name: e.name, address: e.properties?.address,
     lat: e.location!.lat, lng: e.location!.lon,
-    affinity: e.query?.affinity, growth: e.query?.measurements?.audience_growth,
+    affinity: e.query?.affinity, popularity: e.popularity ?? undefined, growth: e.query?.measurements?.audience_growth,
     trend: growthClass(e.query?.measurements?.audience_growth),
     dishes: [...new Set((e.tags ?? []).filter((t) => DISH.test(t.id)).map((t) => t.name))].slice(0, 8),
   }));

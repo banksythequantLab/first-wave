@@ -25,7 +25,7 @@ export type TrendCard = {
   /** Optional illustration under /public, e.g. /trends/salt-bread.webp */
   image?: string; imageAlt?: string;
 };
-export type Pin = { id: string; name: string; address?: string; lat: number; lng: number; affinity?: number; growth?: number; trend: "rising" | "flat" | "falling" | "unknown"; dishes: string[] };
+export type Pin = { id: string; name: string; address?: string; lat: number; lng: number; affinity?: number; popularity?: number; growth?: number; trend: "rising" | "flat" | "falling" | "unknown"; dishes: string[] };
 export type HeatLayer = { label: string; tagId: string; points: HeatPoint[] };
 export type Demographics = { label: string; age: Record<string, number>; gender: Record<string, number> };
 export type Overlays = { pins: Pin[]; layers: HeatLayer[]; demographics: Demographics | null; center?: { lat: number; lng: number } };

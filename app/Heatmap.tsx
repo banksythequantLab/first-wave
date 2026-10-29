@@ -18,7 +18,7 @@ function pinPopup(p: Pin): HTMLElement {
   const add = (tag: string, text: string) => { const x = document.createElement(tag); x.textContent = text; d.appendChild(x); return x; };
   add("b", p.name);
   if (p.address) add("div", p.address);
-  add("div", `Qloo affinity ${p.affinity?.toFixed(2) ?? "n/a"} · audience growth ${p.growth?.toFixed(2) ?? "n/a"} (${p.trend})`);
+  add("div", `${p.affinity !== undefined ? `Qloo affinity ${p.affinity.toFixed(2)}` : `Qloo popularity ${p.popularity?.toFixed(2) ?? "n/a"} (no affinity returned for a location-only query)`} · audience growth ${p.growth?.toFixed(2) ?? "n/a"} (${p.trend})`);
   add("div", p.dishes.length ? `Known for: ${p.dishes.join(", ")}` : "No specialty-dish / menu-highlight tags in Qloo");
   return d;
 }
