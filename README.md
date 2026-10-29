@@ -2,7 +2,7 @@
 
 ![First Wave hero](public/hero.jpg)
 
-**Catch the next trend before it lands.** First Wave is an AI agent that scouts what's taking off in Seoul, Mexico City, Lagos and Tokyo, finds the trends that *haven't* reached a US neighborhood yet, scores how well each fits that block's taste, and hands a small business a ready-to-launch kit that credits the origin culture.
+**Catch the next trend before it lands.** First Wave is an AI agent that scouts what's taking off in Tokyo, Mexico City, Paris and London, finds the trends that *haven't* reached a US neighborhood yet, scores how well each fits that block's taste, and hands a small business a ready-to-launch kit that credits the origin culture.
 
 ![Trend cards](docs/03-trend-cards.png)
 
